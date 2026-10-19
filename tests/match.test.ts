@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { BOT_SKILL, CLASSIC_PLAN, botBuy, botCmds, skillAt } from '../src/shared/bots.ts';
 import { ARENA_R0, ASSIST_GOLD, COUNTDOWN_MS, DM_ROUND_MS, KILL_GOLD, ROUND_END_MS, ROUND_GOLD, SHOP_MS, START_GOLD, TOP_DMG_GOLD, VOTE_MS, WIN_GOLD, WINS_TO_WIN } from '../src/shared/constants.ts';
 import { SPELLS } from '../src/shared/spells.ts';
@@ -28,6 +28,18 @@ describe('partida', () => {
     expect(startMatch(m, 0, 0)).toBe(false);
     expect(startMatch(m, 0, 2)).toBe(true);
     expect(m.players.filter((p) => p.bot).length).toBe(2);
+  });
+
+  it('uses the injected random source when creating a round', () => {
+    const m = twoPlayers();
+    const nativeRandom = vi.spyOn(Math, 'random').mockReturnValue(0.5);
+    try {
+      tickMatch(m, SHOP_MS + 1, [], () => 0.5);
+      expect(nativeRandom).not.toHaveBeenCalled();
+    } finally {
+      nativeRandom.mockRestore();
+    }
+    expect(m.world).not.toBeNull();
   });
 
   it('last alive gets 1 point', () => {
