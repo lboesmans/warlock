@@ -29,7 +29,7 @@ export const BOT_LEVEL: Record<MatchOpts['difficulty'], string> = { easy: t('Fá
 const HUES = [0, 215, 145, 52, 270, 182, 24, 330];
 const MAGE_HUE = 255;
 
-export type WizDraw = { id: string; pos: Vec; facing: number; hp: number; hpMax: number; status: number; alive: boolean; shield: boolean; shieldR?: number; rushLeft?: number; regen?: number; bot?: MatchOpts['difficulty'] | null; loot?: number; color: number; character: string; look?: string; name: string; moving: boolean; cheer: boolean; team?: number | null; ghost?: boolean }; // ghost: meio transparente (a cópia da Ilusão vista pelo dono)
+export type WizDraw = { id: string; pos: Vec; facing: number; hp: number; hpMax: number; status: number; alive: boolean; shield: boolean; shieldR?: number; rushLeft?: number; regen?: number; bot?: MatchOpts['difficulty'] | null; loot?: number; color: number; character: string; look?: string; name: string; moving: boolean; cheer: boolean; team?: number | null; illusion?: boolean; ghost?: boolean };
 
 // personagens KayKit: cada GLB carrega na primeira vez que alguém usa uma peça dele
 export type Model = { scene: THREE.Group; clips: THREE.AnimationClip[] };
@@ -186,6 +186,7 @@ type Mage = {
   look: string;
   // materiais próprios deste boneco (o clone do SkeletonUtils divide os do modelo) e a cor de brilho original de cada um
   mats: { m: THREE.MeshStandardMaterial; c: THREE.Color; i: number; col: THREE.Color; rough: number }[];
+  ghostMats: { m: THREE.Material; transparent: boolean; opacity: number }[];
   model: THREE.Object3D; // o boneco (some no fim da queima, quando fica só o esqueleto)
   burnAt: number; // morreu na lava neste instante (−1 = não está queimando)
   bones: THREE.Object3D | null; // esqueleto escuro que sobra da queima
@@ -701,16 +702,25 @@ export function createScene(canvas: HTMLCanvasElement, labels: HTMLElement) {
     const model = cloneSkinned(src.scene) as THREE.Group;
     model.scale.setScalar(mageScale);
     const mats: Mage['mats'] = [];
+    const ghostMats: Mage['ghostMats'] = [];
     model.traverse((o) => {
       const mesh = o as THREE.Mesh;
       if (!mesh.isMesh) return;
       mesh.castShadow = true;
       // material próprio de cada boneco: o clarão do golpe não pode acender os outros magos do mesmo modelo
-      if (Array.isArray(mesh.material)) return;
-      const mat = (mesh.material as THREE.MeshStandardMaterial).clone();
-      if (/^Mage_(Hat|Body|Cape)$/.test(mesh.name) && mat.map) mat.map = tintFor(d.color, mat.map);
+      if (Array.isArray(mesh.material)) {
+        mesh.material = mesh.material.map((source) => {
+          const mat = source.clone();
+          ghostMats.push({ m: mat, transparent: mat.transparent, opacity: mat.opacity });
+          return mat;
+        });
+        return;
+      }
+      const mat = mesh.material.clone();
+      if (mat instanceof THREE.MeshStandardMaterial && /^Mage_(Hat|Body|Cape)$/.test(mesh.name) && mat.map) mat.map = tintFor(d.color, mat.map);
       mesh.material = mat;
-      if (mat.emissive) mats.push({ m: mat, c: mat.emissive.clone(), i: mat.emissiveIntensity, col: mat.color.clone(), rough: mat.roughness });
+      ghostMats.push({ m: mat, transparent: mat.transparent, opacity: mat.opacity });
+      if (mat instanceof THREE.MeshStandardMaterial) mats.push({ m: mat, c: mat.emissive.clone(), i: mat.emissiveIntensity, col: mat.color.clone(), rough: mat.roughness });
     });
     const root = new THREE.Group();
     root.add(model);
@@ -752,7 +762,7 @@ export function createScene(canvas: HTMLCanvasElement, labels: HTMLElement) {
     const lootBar = el('div', { class: 'loot-bar', hidden: true }, lootFill);
     const label = el('div', { class: 'wiz-label' }, statusEl, nameEl, el('div', { class: 'hp-row' }, aegisEl, bar, extraEl), shieldBar, lootBar);
     labels.append(label);
-    return { root, mixer, actions, current: 'Idle', oneShotUntil: 0, ring, shield, aura, bar, absRush, extraEl, extraKey: '', aegisEl, shieldBar, shieldFill, shieldSince: 0, prevHp: 0, prevAlive: false, healAt: -9, healSum: 0, healFlushAt: 0, label, hpFill, hpText, nameEl, botEl, botKey: '', tint: COLORS[d.color], lootBar, lootFill, statusEl, statusKey: -1, ghost: false, dead: false, color: d.color, look, mats, model, burnAt: -1, bones: null, flash: 0, freezeUntil: 0, cheering: false };
+    return { root, mixer, actions, current: 'Idle', oneShotUntil: 0, ring, shield, aura, bar, absRush, extraEl, extraKey: '', aegisEl, shieldBar, shieldFill, shieldSince: 0, prevHp: 0, prevAlive: false, healAt: -9, healSum: 0, healFlushAt: 0, label, hpFill, hpText, nameEl, botEl, botKey: '', tint: COLORS[d.color], lootBar, lootFill, statusEl, statusKey: -1, ghost: false, dead: false, color: d.color, look, mats, ghostMats, model, burnAt: -1, bones: null, flash: 0, freezeUntil: 0, cheering: false };
   }
 
   function play(m: Mage, name: string, fade = 0.15) {
@@ -1574,13 +1584,13 @@ export function createScene(canvas: HTMLCanvasElement, labels: HTMLElement) {
         m.hpFill.style.background = tint;
         m.nameEl.style.color = d.team != null ? COLORS[d.color] : '';
       }
-      const hidden = (d.status & 2048) > 0; // Caminhada no vento de um inimigo
+      const hidden = !d.illusion && (d.status & 2048) > 0; // a cópia é sempre visível; os inimigos não veem o jogador velado
       m.root.visible = !hidden;
-      // Ilusão: o próprio mago velado (bit 8388608) e a cópia vista pelo dono ficam meio transparentes
-      const ghost = !!d.ghost || (d.status & 8388608) > 0;
+      // A cópia é sólida e visível; a invisibilidade vale somente para o jogador real.
+      const ghost = !!d.ghost || (d.status & 1024) > 0; // efeito translúcido da Caminhada no vento, também usado no véu visto por si
       if (m.ghost !== ghost) {
         m.ghost = ghost;
-        for (const x of m.mats) Object.assign(x.m, { transparent: ghost, opacity: ghost ? 0.45 : 1, needsUpdate: true });
+        for (const x of m.ghostMats) Object.assign(x.m, { transparent: ghost || x.transparent, opacity: ghost ? x.opacity * (d.ghost ? 0.45 : 0.35) : x.opacity, needsUpdate: true });
         m.label.style.opacity = ghost ? '0.6' : '';
       }
       m.root.position.copy(w3(d.pos));

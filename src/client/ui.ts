@@ -214,6 +214,7 @@ export function screen(root: HTMLElement, title: string, text: string, button: s
 }
 
 type RoomActions = {
+  backToMenu: () => void;
   start: (bots: Level[], mode: Mode, shuffle: boolean, opts: MatchOpts, again?: boolean) => void; // bots: a dificuldade de cada um; again: "Jogar de novo" (repete a configuração do treino)
   hover: (a: SpellId | ItemId | null) => void; // mouse em cima da magia ou item na barra (círculo de alcance)
   buy: (s: SpellId) => void;
@@ -957,7 +958,9 @@ export function createRoomUi(root: HTMLElement, code: string, act: RoomActions) 
         el('div', { class: 'lobby-col' }, modePicker, optsBlock),
       ),
       // Começar e Convidar grudados no rodapé enquanto rola as opções
-      el('div', { class: 'card-go' }, startBtn, inviteBtn()),
+      el('div', { class: 'card-go' },
+        el('div', { class: 'card-go-main' }, startBtn, el('button', { type: 'button', class: 'room-back secondary', onclick: act.backToMenu }, '← ', t('Menu principal', 'Main menu'))),
+        inviteBtn()),
     );
   }
 

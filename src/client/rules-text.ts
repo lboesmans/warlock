@@ -6,7 +6,7 @@ import { DEFAULT_OPTS, DM_GOALS, OPTION_CHOICES } from '../shared/match.ts';
 import { CLASH } from '../shared/sim.ts';
 import { ITEMS, MAX_ITEMS, SCOURGE } from '../shared/items.ts';
 import { keyLabel, keyOf, padButtonName, padButtonOf, uiLabel, type PadAction, type UiAction } from './keys.ts';
-import { BOUNCER, CAST_POINT, GRAVITY, GRIP, ILLUSION, MAX_SPELLS, MAX_SPELL_LEVEL, METEOR_DELAY, RECHARGE, RUSH, SPELLS, SPELL_IDS, WARPZONE, type SpellId } from '../shared/spells.ts';
+import { BOUNCER, CAST_POINT, GRAVITY, GRIP, MAX_SPELLS, MAX_SPELL_LEVEL, METEOR_DELAY, RECHARGE, RUSH, SPELLS, SPELL_IDS, WARPZONE, type SpellId } from '../shared/spells.ts';
 import { LANG, LOCALE, spellName, t } from './i18n.ts';
 
 // formatação dos números nos textos (também usada pela loja, ficha, dicas e opções)
@@ -276,7 +276,7 @@ const SPELL_TIPS_PT: SpellTips = {
   bouncer: [`Melhor com inimigos juntos: pula para o mago mais perto, perdendo ${pct(1 - BOUNCER.decay)} do dano por inimigo.`, 'Contra um inimigo sozinho é só um acerto.'],
   drain: ['Mire perto do grupo: depois do ponto, vira para o mago mais perto. No inimigo, dano, lentidão e a vida volta para você; no aliado, cura e pressa.', `É lento (${n1(L1('drain').speed)} m/s) e o Escudo devolve.`],
   snowball: ['Quem encosta é arrastado junto: role na direção da lava. No fim do caminho ela explode.', `Muito lenta (${n1(L1('snowball').speed)} m/s) e de alcance curto: dá para sair da frente.`],
-  illusion: ['Lance na direção do tiro que vem: a cópia o pega no seu lugar e os dois somem, sem dano. Ou para o lado, para despistar quem persegue: o Míssil teleguiado vai atrás da cópia.', 'Não segura Raio, Meteoro, Flagelo nem explosões. A cópia só anda reto: quem presta atenção percebe.'],
+  illusion: [`Cria uma cópia no seu lugar, que segue reto na direção do seu movimento por ${n1(L1('illusion').duration)} s. Você pode se mover livremente, invisível, até ela sumir. A cópia não é destruída por golpes, mas pode ser empurrada.`, 'Mísseis teleguiados e bots são enganados pela cópia.'],
   magnetize: ['Magnetize o inimigo e atire perto dele: os seus projéteis curvam até ele. Em você ou num aliado, afasta os projéteis inimigos.', 'Só curva projéteis que passam perto (menos de 2 m).'],
   recharge: [`Se acertar, ela volta até você e zera a recarga: lance de novo, com +${RECHARGE.perHit} de dano por acerto seguido.`, `Errar zera a sequência e a recarga é longa (${n1(L1('recharge').cd)} s no nível 1).`],
   alteration: [`Ligue quando um projétil estiver chegando: por ${n1(L1('alteration').duration)} s você troca de lugar com o primeiro que entrar na bolha.`, 'Não serve contra Raio, Meteoro, Flagelo e explosões, que não são projéteis.'],
@@ -304,7 +304,7 @@ const SPELL_TIPS_EN: SpellTips = {
   bouncer: [`Best with enemies grouped: it jumps to the nearest wizard, losing ${pct(1 - BOUNCER.decay)} of the damage per enemy.`, 'Against a lone enemy it is just one hit.'],
   drain: ['Aim near the group: after the point, it turns to the nearest wizard. On an enemy, damage, slow and the health comes back to you; on an ally, heal and haste.', `It is slow (${n1(L1('drain').speed)} m/s) and the Shield reflects it.`],
   snowball: ['Anyone it touches is dragged along: roll toward the lava. At the end of the path it explodes.', `Very slow (${n1(L1('snowball').speed)} m/s) and short range: you can step out of the way.`],
-  illusion: ['Cast toward the incoming shot: the copy takes it in your place and both vanish, no damage. Or to the side, to shake off a chaser: the Homing Missile goes after the copy.', 'Does not stop Lightning, Meteor, Scourge or explosions. The copy only walks straight: anyone paying attention will notice.'],
+  illusion: [`Creates a copy at your location that moves straight in your current direction for ${n1(L1('illusion').duration)} s. You can move freely while invisible until it vanishes. The copy cannot be destroyed by attacks, but can be pushed.`, 'Homing missiles and bots are fooled by the copy.'],
   magnetize: ['Magnetize the enemy and fire near them: your projectiles curve toward them. On yourself or an ally, it repels enemy projectiles.', 'Only curves projectiles that pass close by (under 2 m).'],
   recharge: [`If it hits, it comes back to you and resets the cooldown: cast again, with +${RECHARGE.perHit} damage per consecutive hit.`, `A miss resets the streak and the cooldown is long (${n1(L1('recharge').cd)} s at level 1).`],
   alteration: [`Turn it on when a projectile is about to arrive: for ${n1(L1('alteration').duration)} s you swap places with the first one that enters the bubble.`, 'Useless against Lightning, Meteor, Scourge and explosions, which are not projectiles.'],
@@ -373,7 +373,7 @@ const SPELL_USE_PT: Record<SpellId, string> = {
   windwalk: 'Sumir, reposicionar e surpreender.',
   shield: 'Devolve projéteis para quem lançou.',
   alteration: 'Escapa trocando de lugar com um projétil.',
-  illusion: 'Uma cópia sua engana mísseis e bots.',
+  illusion: 'Você fica invisível enquanto uma cópia sua engana mísseis e bots.',
   warpzone: 'Freia projéteis e inimigos para dar tempo de desviar.',
   rockpillar: 'Barricada contra magos e projéteis.',
   grip: 'Segura o alvo para os outros acertarem.',
@@ -400,7 +400,7 @@ const SPELL_USE_EN: Record<SpellId, string> = {
   windwalk: 'Vanish, reposition and surprise.',
   shield: 'Sends projectiles back at whoever cast them.',
   alteration: 'Escape by swapping places with a projectile.',
-  illusion: 'A copy of you fools missiles and bots.',
+  illusion: 'You turn invisible while a copy of you fools missiles and bots.',
   warpzone: 'Slows projectiles and enemies to give you time to dodge.',
   rockpillar: 'Barricade against wizards and projectiles.',
   grip: 'Holds the target so others can hit it.',
@@ -430,7 +430,7 @@ const RULES_SHORT_PT: Record<SpellId, string> = {
   bouncer: `Acerta e pula para o mago mais perto, perdendo ${pct(1 - BOUNCER.decay)} do dano a cada inimigo.`,
   drain: 'Vai até o ponto e vira para o mago mais perto: no inimigo, dano, lentidão e a vida volta para você; no aliado, cura e acelera.',
   snowball: 'Bola lenta que atravessa e arrasta quem encosta, com dano, e explode no fim do caminho.',
-  illusion: `Uma cópia anda reto por ${n1(L1('illusion').duration)} s; o Míssil teleguiado e os bots miram nela; você fica meio transparente por ${n1(ILLUSION.veil)} s. Recarga ${n1(L1('illusion').cd)} s.`,
+  illusion: `Uma cópia nasce no seu lugar e segue reto na direção do seu movimento por ${n1(L1('illusion').duration)} s; você pode se mover livremente, invisível, até ela sumir. A cópia não é destruída, mas pode ser empurrada. O Míssil teleguiado e os bots miram nela. Recarga ${n1(L1('illusion').cd)} s.`,
   magnetize: 'No inimigo, puxa para ele os projéteis dos outros; num aliado ou em você (depois de quicar), afasta.',
   recharge: 'Se acertar, volta e zera a própria recarga; cada acerto seguido soma dano.',
   alteration: `Por ${n1(L1('alteration').duration)} s, troca de lugar com o primeiro projétil inimigo que chegar perto.`,
@@ -457,7 +457,7 @@ const RULES_SHORT_EN: Record<SpellId, string> = {
   bouncer: `Hits and jumps to the nearest wizard, losing ${pct(1 - BOUNCER.decay)} of the damage per enemy.`,
   drain: 'Goes to the point and turns to the nearest wizard: on an enemy, damage, slow and the health comes back to you; on an ally, heal and haste.',
   snowball: 'Slow ball that passes through and drags anyone it touches, with damage, and explodes at the end of the path.',
-  illusion: `A copy walks straight for ${n1(L1('illusion').duration)} s; the Homing Missile and bots aim at it; you become half transparent for ${n1(ILLUSION.veil)} s. Cooldown ${n1(L1('illusion').cd)} s.`,
+  illusion: `A copy starts at your location and moves straight in your current direction for ${n1(L1('illusion').duration)} s; you can move freely while invisible until it vanishes. The copy cannot be destroyed, but can be pushed. The Homing Missile and bots aim at it. Cooldown ${n1(L1('illusion').cd)} s.`,
   magnetize: "On an enemy, pulls other casters' projectiles toward them; on an ally or on you (after a bounce), repels them.",
   recharge: 'If it hits, it comes back and resets its own cooldown; each consecutive hit adds damage.',
   alteration: `For ${n1(L1('alteration').duration)} s, swaps places with the first enemy projectile that comes close.`,

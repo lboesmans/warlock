@@ -4,7 +4,7 @@ import { LAVA_DPS } from '../shared/constants.ts';
 import { SCRIPTS, createDemo, runDemo, type DemoId } from './demo.ts';
 import { itemName, itemText, spellName, t } from './i18n.ts';
 import { labelOf } from './keys.ts';
-import { ILLUSION, MAX_SPELL_LEVEL, RECHARGE, RUSH, SPELLS, WARPZONE, type Level, type SpellId } from '../shared/spells.ts';
+import { MAX_SPELL_LEVEL, RECHARGE, RUSH, SPELLS, WARPZONE, type Level, type SpellId } from '../shared/spells.ts';
 import { RULES_SHORT, n1 } from './rules-text.ts';
 import { COLORS } from './scene.ts';
 
@@ -43,7 +43,7 @@ export const SPELL_ROWS: Record<SpellId, Row[]> = {
   bouncer: [[t('Dano no 1º', 'Damage on the 1st hit'), (l) => n1(l.dmg)], [KNOCK, (l) => m(l.knock / 1.166)], [CD, (l) => s(l.cd)], [t('Alcance por salto', 'Range per bounce'), (l) => m(l.range)]],
   drain: [[t('Dano e cura', 'Damage and healing'), (l) => n1(l.dmg)], [KNOCK, (l) => m(l.knock / 1.166)], [t('Lentidão ou pressa', 'Slow or haste'), (l) => s(l.duration)], [CD, (l) => s(l.cd)], [t('Alcance até virar', 'Range until it turns'), (l) => m(l.range)]],
   snowball: [[t('Dano por segundo encostado', 'Damage per second touching'), (l) => n1(l.dot)], [t('Explosão no centro', 'Center blast'), (l) => n1(l.dmg)], [t('Empurrão da explosão', 'Blast knockback'), (l) => m(l.knock / 1.166)], [RADIUS, (l) => m(l.radius)], [CD, (l) => s(l.cd)], [RANGE, (l) => m(l.range)]],
-  illusion: [[t('Duração da cópia', 'Copy duration'), (l) => s(l.duration)], [t('Véu', 'Veil'), () => s(ILLUSION.veil)], [CD, (l) => s(l.cd)]],
+  illusion: [[t('Cópia e invisibilidade', 'Copy and invisibility'), (l) => s(l.duration)], [CD, (l) => s(l.cd)]],
   magnetize: [[DURATION, (l) => s(l.duration)], [CD, (l) => s(l.cd)], [RANGE, (l) => m(l.range)]],
   recharge: [[DMG, (l) => n1(l.dmg)], [KNOCK, (l) => m(l.knock / 1.166)], [t('Por acerto seguido', 'Per consecutive hit'), () => '+' + n1(RECHARGE.perHit)], [CD, (l) => s(l.cd)], [RANGE, (l) => m(l.range)]],
   alteration: [[DURATION, (l) => s(l.duration)], [RADIUS, (l) => m(l.radius)], [CD, (l) => s(l.cd)]],

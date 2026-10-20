@@ -5,7 +5,7 @@ import {
 } from './constants.ts';
 import { SHAPES, edge, inArena, inLavaAt, isleSpot, safeInside, type ArenaId, type Isle } from './arena.ts';
 import { ACTIVE_ITEMS, AEGIS, ITEM_CAST, PACT, REDIRECTOR, SCOURGE, SHOCK_BOOTS, WIND_BOOTS, isActive, itemStats, noItems, type ItemId } from './items.ts';
-import { BOOMERANG, BOUNCER, CAST_POINT, CLUSTER_FAN, DRAIN, GRAVITY, GRIP, HOMING_TURN, ILLUSION, LINK, MAGNETIZE, METEOR_DELAY, RECHARGE, RUSH, SNOWBALL, SPELL_IDS, SPLITTER, THRUST, WARPZONE, WINDWALK, spellLevel, type Level, type SpellId } from './spells.ts';
+import { BOOMERANG, BOUNCER, CAST_POINT, CLUSTER_FAN, DRAIN, GRAVITY, GRIP, HOMING_TURN, LINK, MAGNETIZE, METEOR_DELAY, RECHARGE, RUSH, SNOWBALL, SPELL_IDS, SPLITTER, THRUST, WARPZONE, WINDWALK, spellLevel, type Level, type SpellId } from './spells.ts';
 import { add, clampLen, dist, dot, len, norm, scale, sub, v, type Vec } from './vec.ts';
 
 export type Wizard = {
@@ -58,7 +58,7 @@ export type Wizard = {
   alterUntil: number; // Alteração ativa até este instante
   windUntil: number; // Caminhada no vento (invisível) até este instante
   windMult: number; // Pacto na Caminhada no vento
-  veilUntil: number; // Ilusão: velado (os bots não o enxergam) até este instante
+  veilUntil: number; // Ilusão: invisível até a cópia acabar
   streak: number; // Recarga: acertos seguidos
   invulnUntil: number;
   respawnAt: number; // deathmatch: instante (w.t) em que o morto volta
@@ -81,7 +81,7 @@ export type Wizard = {
 // meteor fica parado no ponto de impacto até `until` e então explode; swap e grip não causam dano
 // boomerang curva e volta ao dono; gravity não bate em mago, só puxa; bouncer pula de mago em mago
 // drain e recharge com back voltam a quem lançou (cura, recarga); link fica preso a um mago ou obstáculo; splitter vira lançador de shard;
-// warpzone não anda (zona de tempo lento); illusion é a cópia do mago (anda reto e some com o primeiro projétil inimigo)
+// warpzone não anda (zona de tempo lento); illusion é a cópia autônoma do mago, que dura até o prazo mesmo quando atingida
 export const PROJ_KINDS = ['fireball', 'homing', 'swap', 'grip', 'meteor', 'cluster', 'boomerang', 'gravity', 'bouncer',
   'drain', 'snowball', 'illusion', 'magnetize', 'recharge', 'link', 'splitter', 'shard', 'warpzone'] as const;
 export type ProjKind = (typeof PROJ_KINDS)[number];
@@ -456,6 +456,15 @@ function area(w: World, at: Vec, radius: number, dmg: number, kbFactor: number, 
     if (amount <= 0.5) continue;
     hit(w, o, by && by !== o.id ? by : (o.lastHitBy ?? by ?? o.id), amount, amount * KB_PER_DMG * kbFactor, sub(o.pos, at), 'choque:' + combo);
   }
+  for (const q of w.projectiles) {
+    const owner = anyById(w, q.owner);
+    const caster = by ? byId(w, by) : undefined;
+    if (q.kind !== 'illusion' || q.owner === by || (caster && owner && allies(caster, owner))) continue;
+    const d = dist(q.pos, at);
+    if (d > radius + WIZ_R) continue;
+    const amount = dmg * Math.max(0, 1 - d / (radius + WIZ_R));
+    if (amount > 0.5) q.vel = add(q.vel, scale(norm(sub(q.pos, at)), amount * KB_PER_DMG * kbFactor));
+  }
   w.events.push({ k: 'clash', x: at.x, y: at.y, combo, r: radius });
   const kind = combo === 'fire' || combo === 'detonate' ? 'burn' : combo === 'arcane' ? 'slow' : combo === 'pulse' ? 'pull' : null;
   if (kind) w.zones.push({ pos: at, r: radius * ZONES.size, kind, until: w.t + (combo === 'detonate' ? 3.5 : ZONES[kind].secs) });
@@ -654,9 +663,10 @@ function cast(w: World, wz: Wizard, spell: SpellId, at: Vec) {
     const turn = Math.min(len(sub(at, wz.pos)), L.range * wz.rangeF) / L.speed;
     launch('drain', dir, turn + DRAIN.extra * wz.rangeF).turnAt = w.t + turn;
   } else if (spell === 'illusion') {
-    // a cópia sai de dentro do mago e anda reto para a mira; o dono fica velado um instante
-    launch('illusion', dir, L.duration, null, wz.pos);
-    wz.veilUntil = w.t + ILLUSION.veil;
+    // a cópia segue o movimento atual (ou o destino recém-ordenado); parada, usa a direção da magia
+    const moveDir = len(wz.vel) > 0.5 ? norm(wz.vel) : wz.target && dist(wz.target, wz.pos) > 0.1 ? norm(sub(wz.target, wz.pos)) : dir;
+    launch('illusion', moveDir, L.duration, null, wz.pos);
+    wz.veilUntil = w.t + L.duration;
   } else if (spell === 'recharge') {
     launch('recharge', dir, flight).bonus = RECHARGE.perHit * wz.streak;
   } else if (spell === 'alteration') {
@@ -741,6 +751,7 @@ function beginCast(w: World, wz: Wizard, what: { spell?: SpellId; item?: ItemId 
   if (len(d) > 0.01) wz.facing = Math.atan2(d.y, d.x);
   if (what.spell) w.events.push({ k: 'cast', id: wz.id, spell: what.spell });
   else w.events.push({ k: 'item', id: wz.id, item: what.item! });
+  if (what.spell && what.spell !== 'illusion') wz.veilUntil = 0; // outra magia revela o dono, mas a cópia continua até o próprio prazo
   if (delay <= 0) return fire(w, wz, what, at);
   wz.target = null;
   wz.casting = { ...what, at, fireAt: w.t + delay };
@@ -792,6 +803,15 @@ function scourge(w: World, wz: Wizard) {
     landed = true;
   }
   if (landed) w.events.push({ k: 'land', id: wz.id, src: 'scourge' });
+  for (const q of w.projectiles) {
+    const owner = anyById(w, q.owner);
+    if (q.kind !== 'illusion' || q.owner === wz.id || (owner && allies(wz, owner))) continue;
+    const d = dist(q.pos, wz.pos);
+    if (d <= SCOURGE.radius + WIZ_R) {
+      const factor = 0.75 + 0.25 * Math.max(0, 1 - d / SCOURGE.radius);
+      q.vel = add(q.vel, scale(norm(sub(q.pos, wz.pos)), dmg * KB_PER_DMG * factor));
+    }
+  }
   // também bate nos obstáculos e no baú dentro da explosão (pedido do Fernando, 17/10)
   // a parede apanha uma vez, mesmo com mais de um pedaço dentro
   const walls = new Set<number>();
@@ -801,7 +821,7 @@ function scourge(w: World, wz: Wizard) {
     damagePillar(w, i, dmg, wz.id);
   });
   // também destrói bolas de fogo e mísseis inimigos dentro da explosão (pedido do Fernando, 17/10)
-  const caught = w.projectiles.filter((p) => p.owner !== wz.id && !fixed(p) && p.kind !== 'snowball' && dist(p.pos, wz.pos) <= SCOURGE.radius + PROJ_R);
+  const caught = w.projectiles.filter((p) => p.owner !== wz.id && p.kind !== 'illusion' && !fixed(p) && p.kind !== 'snowball' && dist(p.pos, wz.pos) <= SCOURGE.radius + PROJ_R);
   if (caught.length) {
     w.projectiles = w.projectiles.filter((p) => !caught.includes(p));
     for (const p of caught) w.events.push({ k: 'clash', x: p.pos.x, y: p.pos.y, combo: 'pulse', r: 0.6 });
@@ -820,6 +840,15 @@ function meteorLand(w: World, p: Projectile) {
     const amount = (L.dmgMin + (L.dmg - L.dmgMin) * Math.max(0, 1 - d / L.radius)) * p.dmgMult;
     hit(w, o, p.owner, amount, amount * (L.knock / L.dmg), sub(o.pos, p.pos), 'meteor');
     landed = true;
+  }
+  const owner = anyById(w, p.owner);
+  for (const q of w.projectiles) {
+    const qo = q.kind === 'illusion' ? anyById(w, q.owner) : undefined;
+    if (!qo || q.owner === p.owner || allies(owner, qo)) continue;
+    const d = dist(q.pos, p.pos);
+    if (d > L.radius + WIZ_R) continue;
+    const amount = (L.dmgMin + (L.dmg - L.dmgMin) * Math.max(0, 1 - d / L.radius)) * p.dmgMult;
+    q.vel = add(q.vel, scale(norm(sub(q.pos, p.pos)), amount * (L.knock / L.dmg) * KB_PER_DMG));
   }
   w.events.push({ k: 'clash', x: p.pos.x, y: p.pos.y, combo: 'fire', r: L.radius });
   if (landed) land(w, p, 'meteor');
@@ -941,8 +970,8 @@ function windTouch(w: World, wz: Wizard) {
   }
 }
 
-// não andam, ou andam sozinhos (a cópia da Ilusão): nada os puxa, desvia ou redireciona
-const fixed = (p: Projectile) => p.kind === 'meteor' || p.kind === 'warpzone' || p.kind === 'illusion';
+// não andam: meteoro e zona de dobra. A cópia da Ilusão anda sozinha e pode ser afetada por habilidades.
+const fixed = (p: Projectile) => p.kind === 'meteor' || p.kind === 'warpzone';
 const returning = (p: Projectile) => !!p.back && (p.kind === 'drain' || p.kind === 'recharge'); // bolinha voltando a quem lançou
 export const spellOf = (k: ProjKind): SpellId => (k === 'shard' ? 'splitter' : k); // os filhotes são do Divisor
 // acerto conta para quem lançou ('land'), não para quem devolveu; once: só o primeiro (os que acertam mais de uma vez)
@@ -1151,7 +1180,7 @@ function stepProjectiles(w: World) {
       if (linkHold(w, p)) keep.push(p);
       continue;
     }
-    const ts = timeScale(w, p);
+    const ts = p.kind === 'illusion' ? 1 : timeScale(w, p); // a cópia mantém os 2 s de duração mesmo em zonas lentas
     const dt = DT * ts;
     if (ts < 1) delay(p, DT - dt);
     if (returning(p)) {
@@ -1159,10 +1188,10 @@ function stepProjectiles(w: World) {
       continue;
     }
     if (p.kind === 'illusion') {
-      // a cópia anda reto (para no obstáculo, como um mago) e some no fim do tempo, se o dono cair ou se um projétil inimigo a pegar
+      // cópia autônoma: segue o vetor de movimento e só desaparece no prazo; projéteis podem empurrá-la, nunca destruí-la
       const next = add(p.pos, scale(p.vel, dt));
       if (!firstPillarOnSegment(w, p.pos, next, WIZ_R)) p.pos = next;
-      if (w.t < p.until && byId(w, p.owner)) keep.push(p);
+      if (w.t < p.until) keep.push(p);
       continue;
     }
     if (p.waves !== undefined) {
@@ -1208,11 +1237,10 @@ function stepProjectiles(w: World) {
     const r = p.kind === 'snowball' ? snowR(p.level) : PROJ_R;
     let found = p.kind === 'gravity' ? null : firstOnSegment(w, p.pos, next, WIZ_R + r, p.kind === 'bouncer' || p.kind === 'magnetize' ? (p.prev ?? p.owner) : p.owner);
     const pil = firstPillarOnSegment(w, p.pos, next, r);
-    // Ilusão: a cópia inimiga no caminho some junto com o projétil (sem dano, sem empurrão, sem choque)
+    // Ilusão: projéteis não a destroem; ao acertá-la, transferem o empurrão e continuam o trajeto
     const fake = p.kind === 'gravity' ? null : decoyOnSegment(w, p, next, WIZ_R + r);
     if (fake && (!found || fake.t <= found.t) && (!pil || fake.t < pil.t)) {
-      fake.q.until = 0;
-      continue;
+      fake.q.vel = add(fake.q.vel, scale(norm(p.vel), L.knock * p.dmgMult));
     }
     // a Bola de neve atravessa magos (arrastando) e só para em obstáculo ou escudo
     if (p.kind === 'snowball' && found && !shielded(w, found.wz) && (!pil || found.t <= pil.t)) {

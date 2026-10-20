@@ -54,8 +54,8 @@ export const SPELLS: Record<SpellId, Spell> = {
   drain: { name: 'Drenar', en: 'Drain', cost: 14, up: [6, 7, 8, 9, 10, 11], levels: steps(22, -1).map((cd, i) => L({ cd: cd * 1.2 /* 18/10 bots humanos: 16% acima (×1,1); 19/10 bots do fim de rodada: 16% acima de novo (×1,2) */, dmg: 60 + 10 * i, kbf: 0.2, speed: 700 * UNIT, range: 850 * UNIT, duration: 4 + i })) },
   // bola de neve: 400 u/s por 575 u; dmg = explosão no centro (damage_max; 0 na borda do raio de 200 u; empurrão 0,8); dot = damage, por segundo encostado
   snowball: { name: 'Bola de neve', en: 'Snowball', cost: 14, up: [6, 7, 8, 9, 10, 11], levels: steps(19, -1).map((cd, i) => L({ cd, dmg: (45 + 35 * i) * 1.3, kbf: 0.8, dot: 30 + 10 * i, /* 18/10: explosão ×1,3, +35 e +10 de lentidão por nível (0,91 → 0,96) */ speed: 400 * UNIT, range: 575 * UNIT, radius: 200 * UNIT })) },
-  // ilusão (decisão do Fernando, 19/10; não existe no original): uma cópia do mago anda reto por `duration` s na velocidade de andar
-  illusion: { name: 'Ilusão', en: 'Illusion', cost: 12, up: [6, 7, 8, 9, 10, 11], levels: zip(steps(14, -0.5), steps(2, 0.1)).map(([cd, duration]) => L({ cd, duration, speed: WIZ_SPEED })) },
+  // ilusão (decisão do Fernando, 19/10; não existe no original): a cópia sai do lugar do mago, anda na direção do movimento por 2 s e pode ser empurrada, mas não destruída
+  illusion: { name: 'Ilusão', en: 'Illusion', cost: 12, up: [6, 7, 8, 9, 10, 11], levels: steps(14, -0.5).map((cd) => L({ cd, duration: 2, speed: WIZ_SPEED })) },
   // magnetizar: projétil de 800 u/s por 1,2 s (960 u); duration = tempo magnetizado
   magnetize: { name: 'Magnetizar', en: 'Magnetize', cost: 14, up: [5, 6, 7, 8, 9, 10], levels: steps(22, -1).map((cd, i) => L({ cd, duration: (3.5 + 1.5 * i) * 1.25, speed: 800 * UNIT, range: 960 * UNIT })) /* 18/10: +1,5 s por nível (era +0,5; 0,88 → 0,92) */ },
   // recarga: 900 u/s por 1 s; +10 de dano por acerto seguido (RECHARGE)
@@ -104,8 +104,6 @@ export const DRAIN = { extra: 1.2, turnSpeed: 600 * UNIT, slow: 50 * UNIT, haste
 // bola de neve (snowballprojectile.lua, snowballmodifier.lua): rola atravessando magos e os arrasta a 425 u/s; quem encosta fica −100 u/s
 // por 0,5 s e leva dot × 0,5 no fim (sem empurrão); bolha de 75 u + 2 u por nível
 export const SNOWBALL = { drag: 425 * UNIT, slow: 100 * UNIT, period: 0.5, coll: 75 * UNIT, perLevel: 2 * UNIT };
-// ilusão: por 0,5 s o dono fica velado (os bots não o enxergam e miram a cópia; o navegador o desenha meio transparente)
-export const ILLUSION = { veil: 0.5 };
 // magnetizar (magnetizemodifier.lua): projéteis inimigos do magnetizado até 300 u viram 20%·(1 − d²/300²) por tique de 0,035 s
 export const MAGNETIZE = { r: 300 * UNIT, f: 0.2, tick: 0.035 };
 // recarga (recharge.lua, rechargerefreshprojectile.lua): +10 por acerto seguido; a volta anda 400 u/s e zera a recarga a 64 u

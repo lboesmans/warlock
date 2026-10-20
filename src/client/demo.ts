@@ -38,7 +38,7 @@ export const SCRIPTS: Partial<Record<DemoId, Script>> = {
   bouncer: { pos: [v(-3, 0), v(1.5, 0), v(2.5, 1.8)], end: 3, steps: [[0.4, A, 'bouncer', B]] },
   drain: { pos: [v(-3, 0), v(2, 0.6), v(2.6, -1.8)], end: 3.6, steps: [[0.4, A, 'drain', v(1.5, 0)]], prep: (w) => (w.wizards[A].hp = 700) },
   snowball: { pos: [v(-3, 0), v(-0.6, 0.1), v(0.3, -0.5)], end: 3, steps: [[0.4, A, 'snowball', v(1, 0)]] },
-  illusion: { end: 2.8, steps: [[0.2, A, 'illusion', B], [0.25, A, 'move', v(-3, -2.6)], [1.2, B, 'fireball', v(-3, 0)]] }, // você sai de lado, a cópia segue reto e pega a bola de fogo
+  illusion: { end: 2.9, steps: [[0.1, A, 'move', v(-3, 3)], [0.5, A, 'illusion', B], [1.4, B, 'fireball', A]] }, // a cópia segue o movimento e o dono fica invisível por toda a duração
   magnetize: { end: 3.4, steps: [[0.3, A, 'magnetize', B], [1.4, A, 'fireball', v(2, 1.3)]] },
   recharge: { end: 4.6, steps: [[0.4, A, 'recharge', B], ...[2.4, 2.7, 3, 3.3].map((t): Step => [t, A, 'recharge', B])] },
   alteration: { end: 2.6, steps: [[0.3, B, 'fireball', A], [0.5, A, 'alteration', B]] },
@@ -177,7 +177,7 @@ export function createDemo(canvas: HTMLCanvasElement, id: DemoId, colors: string
     }
     w.wizards.forEach((z, i) => {
       if (!z.alive) return;
-      ctx.globalAlpha = w.t < z.windUntil ? 0.35 : w.t < z.veilUntil ? 0.5 : 1;
+      ctx.globalAlpha = w.t < z.windUntil || w.t < z.veilUntil ? 0.35 : 1; // no véu, quem treina ainda vê o próprio mago como no Windwalk
       if (w.t < z.shieldUntil) circle(z.pos, z.shieldR, 'rgba(255,214,102,.15)', '#ffd666');
       if (w.t < z.alterUntil) circle(z.pos, spellLevel('alteration', z.spells.alteration || 1).radius, 'rgba(110,230,255,.12)', '#6ee6ff', true);
       if (w.t < z.gripUntil) circle(z.pos, WIZ_R + 0.15, null, '#b8a07a', true);

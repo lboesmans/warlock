@@ -34,7 +34,7 @@ describe('grimório: demonstrações com a simulação de verdade', () => {
     expect(run('rockpillar').some((e) => e.k === 'pillar')).toBe(true);
     expect(run('teleport').some((e) => e.k === 'teleport' && e.id === 'a')).toBe(true);
     expect(run('alteration').some((e) => e.k === 'teleport' && e.id === 'a')).toBe(true);
-    expect(run('illusion').some((e) => e.k === 'hit')).toBe(false); // a cópia pega a bola de fogo do mago de treino
+    expect(run('illusion').some((e) => e.k === 'hit')).toBe(false); // a cópia não causa dano
     expect(run('warpzone').some((e) => e.k === 'hit' && e.id === 'a')).toBe(false);
     expect(run('grip').some((e) => e.k === 'grip')).toBe(true);
     for (const id of ACTIVE_ITEMS) expect(run(id).some((e) => e.k === 'item' && e.id === 'a' && e.item === id), id).toBe(true);
