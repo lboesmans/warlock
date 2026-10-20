@@ -232,7 +232,7 @@ Não desfaça sem combinar numa issue.
 | Drenar | domina combinações no Normal, mas espera partidas reais antes de mexer |
 | Ataques | Bola de fogo frequente; as outras são golpes fortes e raros (não encurtar recargas) |
 | Bots | jogam "como gente": mira com erro, reação de 0,25 a 0,6 s, hesitação; no duelo final vão atrás do inimigo |
-| Personagem | criador de 7 peças com os 9 bonecos originais como atalho |
+| Personagem | criador de 7 peças com os 9 bonecos originais como atalho; prévia 3D orbitável (arraste para girar e role para aproximar) |
 | Recusados | ranking; itens que só ajudam uma magia específica |
 | Publicação | automática: merge em `dev` → dev geral; merge `dev` → `master` → jogo no ar |
 
@@ -243,6 +243,8 @@ Não desfaça sem combinar numa issue.
 - **Defesa (5):** Escudo, Alteração, Zona de dobra, Barricada, Ilusão
 - **Controle (5):** Agarrar, Gravidade, Elo, Magnetizar, Drenar
 - **Itens (16):** Anel de vida, Anel amaldiçoado, Capa, Armadura, Botas, Relógio de bolso, Roubo de vida, Botas de lava, Guardião, Elmo, Botas de choque, Égide, Botas de vento, Flagelo (ativo), Redirecionador (ativo), Pacto (ativo)
+
+**Ilusão:** cria uma cópia visível que segue reto na direção do movimento por 2 s. O jogador pode se mover livremente enquanto fica invisível; usar outra magia o revela, sem encerrar a cópia. Jogador e cópia podem ser atingidos; a cópia pode ser empurrada, mas não destruída antes do fim do prazo.
 
 Modos: Rodadas (vence quem fizer 5), Deathmatch (volta em 10 s), Times (Azul × Vermelho). Arenas: Círculo, Anel, Ilhas, Cruz. Atalhos: <kbd>F1</kbd> grimório, <kbd>F2</kbd> biblioteca, <kbd>Tab</kbd> placar, <kbd>4</kbd> loja, <kbd>5</kbd> replay da queda, <kbd>Esc</kbd> configurações.
 

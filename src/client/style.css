@@ -689,10 +689,13 @@ html.pad .shop-item:focus-within .shop-tile { border-color: #ffd166; }
 .empty-rooms > summary { cursor: pointer; color: var(--muted); min-height: 24px; }
 .empty-rooms[open] > summary { margin-bottom: 8px; }
 /* sala de espera: Começar e Convidar no rodapé do cartão enquanto rola as opções */
+.card-go-main { display: flex; gap: 8px; min-width: 0; }
+.card-go-main .primary { flex: 1; min-width: 0; }
+.room-back { flex: 0 0 auto; background: var(--panel2); color: var(--fg); font-family: inherit; font-weight: 400; text-shadow: none; box-shadow: inset 0 1px 0 rgba(255, 255, 255, .07), 0 2px 0 rgba(0, 0, 0, .45); white-space: nowrap; }
 .card-go { position: sticky; bottom: -18px; z-index: 1; display: grid; grid-template-columns: 1fr auto; gap: 8px; margin: 0 -18px -18px; padding: 12px 18px 18px; background: var(--rivet) left 5px bottom 5px / 10px 10px no-repeat, var(--rivet) right 5px bottom 5px / 10px 10px no-repeat, var(--panel-solid); border-top: 1px solid var(--line); border-radius: 0 0 var(--r-frame) var(--r-frame); }
 /* degradê acima do rodapé: avisa que tem mais opções embaixo */
 .card-go::before { content: ''; position: absolute; left: 0; right: 0; bottom: 100%; height: 24px; background: linear-gradient(transparent, var(--panel-solid)); pointer-events: none; }
-@media (max-width: 420px) { .card-go { grid-template-columns: 1fr; } }
+@media (max-width: 600px) { .card-go { grid-template-columns: 1fr; } }
 /* fim da partida: Jogar de novo e Voltar à sala logo abaixo do pódio */
 .end-actions { display: grid; grid-template-columns: 2fr 1fr; gap: 8px; }
 .end-hint { text-align: center; }
@@ -909,7 +912,7 @@ body.replaying .peek-shop { display: none; }
 .g-sub[class*="g-"] > small { color: var(--g); }
 .g-sub[class*="g-"] .g-chips button .ico, .g-sub[class*="g-"] .g-chips .ico { color: var(--g); }
 /* Começar partida sem ocupar a largura toda (Fernando, 19/10: "muito grande") */
-@media (min-width: 421px) { .card-go { grid-template-columns: minmax(200px, 300px) auto; justify-content: center; } .card-go button.big { min-height: 44px; font-size: 1rem; } }
+@media (min-width: 601px) { .card-go { grid-template-columns: minmax(320px, 480px) auto; justify-content: center; } .card-go button.big { min-height: 44px; font-size: 1rem; } }
 /* loja larga (Fernando, 19/10) */
 .center.wide:has(.shop) { width: min(1860px, calc(100% - 24px)); }
 @media (min-width: 1500px) { .shop { grid-template-columns: 280px minmax(0, 1fr) 290px; gap: 20px; } }

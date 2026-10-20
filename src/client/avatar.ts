@@ -58,6 +58,10 @@ let camera: THREE.PerspectiveCamera;
 let shown: { model: THREE.Object3D; mixer: THREE.AnimationMixer } | null = null;
 let last = 0;
 let scale = 0;
+let orbitYaw = 0;
+let orbitPitch = 0.04;
+let orbitDistance = 4.6;
+let cameraTouched = false;
 function frame(now: number) {
   // parado enquanto o painel não está na tela; volta na próxima chamada de avatarPanel()
   if (!panel?.isConnected) return void (running = false);
@@ -65,7 +69,7 @@ function frame(now: number) {
   last = now;
   if (shown) {
     shown.mixer.update(dt);
-    shown.model.rotation.y += dt * 0.5;
+    if (!cameraTouched) shown.model.rotation.y += dt * 0.5;
   }
   renderer.render(stage, camera);
   requestAnimationFrame(frame);
@@ -102,8 +106,43 @@ function build(): HTMLElement {
   sun.position.set(2, 4, 3);
   stage.add(sun);
   camera = new THREE.PerspectiveCamera(30, W / H, 0.1, 20);
-  camera.position.set(0, 1.15, 4.6);
-  camera.lookAt(0, 0.95, 0);
+  const aimCamera = () => {
+    const targetY = 0.95;
+    camera.position.set(orbitDistance * Math.sin(orbitYaw) * Math.cos(orbitPitch), targetY + orbitDistance * Math.sin(orbitPitch), orbitDistance * Math.cos(orbitYaw) * Math.cos(orbitPitch));
+    camera.lookAt(0, targetY, 0);
+  };
+  aimCamera();
+  let drag: { id: number; x: number; y: number } | null = null;
+  renderer.domElement.tabIndex = 0;
+  renderer.domElement.setAttribute('aria-label', t('Prévia 3D do personagem. Arraste para mover a câmera e use a roda do mouse para aproximar.', '3D character preview. Drag to move the camera and use the mouse wheel to zoom.'));
+  renderer.domElement.addEventListener('pointerdown', (e) => {
+    drag = { id: e.pointerId, x: e.clientX, y: e.clientY };
+    renderer.domElement.setPointerCapture(e.pointerId);
+    renderer.domElement.style.cursor = 'grabbing';
+  });
+  renderer.domElement.addEventListener('pointermove', (e) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    const dx = e.clientX - drag.x, dy = e.clientY - drag.y;
+    drag.x = e.clientX;
+    drag.y = e.clientY;
+    if (dx || dy) cameraTouched = true;
+    orbitYaw -= dx * 0.008;
+    orbitPitch = Math.max(-0.45, Math.min(0.75, orbitPitch + dy * 0.008));
+    aimCamera();
+  });
+  const endDrag = (e: PointerEvent) => {
+    if (!drag || drag.id !== e.pointerId) return;
+    drag = null;
+    renderer.domElement.style.cursor = 'grab';
+  };
+  renderer.domElement.addEventListener('pointerup', endDrag);
+  renderer.domElement.addEventListener('pointercancel', endDrag);
+  renderer.domElement.addEventListener('wheel', (e) => {
+    e.preventDefault();
+    orbitDistance = Math.max(2.8, Math.min(8, orbitDistance * Math.exp(e.deltaY * 0.001)));
+    cameraTouched = true;
+    aimCamera();
+  }, { passive: false });
 
   const names = LOOK_PARTS.map(() => el('b', { class: 'avatar-name' }));
   const set = (next: string) => {
@@ -131,8 +170,8 @@ function build(): HTMLElement {
     if (look !== now || !shown) show(look);
   };
   return el('div', { class: 'avatar' },
-    el('style', {}, `.avatar{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}.avatar canvas{width:${W}px;height:${H}px;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3a2a40,#15101a)}.avatar-parts{flex:1;min-width:220px;display:flex;flex-direction:column;gap:4px}.avatar-pick{display:flex;align-items:center;gap:6px}.avatar-name{min-width:9em;text-align:center}.avatar-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}.avatar-preset{padding:2px;min-height:0;border-radius:8px}.avatar-preset[aria-pressed=true]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}`),
-    renderer.domElement,
+    el('style', {}, `.avatar{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-start}.avatar-view{width:${W}px;max-width:100%;display:flex;flex-direction:column;gap:4px}.avatar canvas{width:${W}px;height:${H}px;max-width:100%;border-radius:12px;background:radial-gradient(circle at 50% 40%,#3a2a40,#15101a);touch-action:none;cursor:grab}.avatar-parts{flex:1;min-width:220px;display:flex;flex-direction:column;gap:4px}.avatar-pick{display:flex;align-items:center;gap:6px}.avatar-name{min-width:9em;text-align:center}.avatar-presets{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:6px}.avatar-preset{padding:2px;min-height:0;border-radius:8px}.avatar-preset[aria-pressed=true]{border-color:var(--gold);box-shadow:0 0 0 1px var(--gold)}`),
+    el('div', { class: 'avatar-view' }, renderer.domElement, el('small', { class: 'muted' }, t('Arraste para orbitar · role para aproximar', 'Drag to orbit · scroll to zoom'))),
     el('div', { class: 'avatar-parts' }, el('small', { class: 'muted' }, t('Prontos', 'Presets')), el('div', { class: 'avatar-presets' }, ...presets), ...rows,
       el('button', { type: 'button', onclick: () => set(randomLook()) }, t('Aleatório', 'Random')),
       el('small', { class: 'muted' }, t('Vale na hora, até no meio da partida, e os outros jogadores veem. Fica salvo neste navegador.', 'Applies right away, even mid-match, and the other players see it. Saved in this browser.'))));
